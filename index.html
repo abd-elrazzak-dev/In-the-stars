@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cosmic Constellations | Interactive Sound & Stars</title>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-LZITi7hjemvFsTv2KS3A4i_E1_qMdyk",
+            authDomain: "starname-5d5ff.firebaseapp.com",
+            projectId: "starname-5d5ff",
+            storageBucket: "starname-5d5ff.firebasestorage.app",
+            messagingSenderId: "732760000499",
+            appId: "1:732760000499:web:a0b6bd1ec15ad42cb07486",
+            measurementId: "G-JHCLJC8SG0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.saveVisitorName = async (name) => {
+            if (!name) return;
+            try {
+                await addDoc(collection(db, "visitors_names"), {
+                    name,
+                    timestamp: new Date()
+                });
+            } catch (error) {
+                console.error("Data sync failed:", error);
+            }
+        };
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #040806; 
+            overflow: hidden;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: crosshair;
+        }
+
+        #landing-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, rgba(14, 26, 20, 0.85) 0%, rgba(4, 8, 6, 0.96) 100%);
+            z-index: 100;
+            transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #landing-overlay.fade-out {
+            opacity: 0;
+            transform: scale(1.15);
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(12, 22, 16, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(16, 185, 129, 0.12);
+            border-top: 1px solid rgba(16, 185, 129, 0.25);
+            border-left: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 28px;
+            padding: 45px 36px;
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+            color: #fff;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .glass-panel h1 {
+            font-size: 1.65rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: #f3f4f6;
+        }
+
+        .glass-panel p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 28px;
+            font-weight: 300;
+        }
+
+        #name-input {
+            width: 100%;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            background: rgba(6, 14, 10, 0.6);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 16px;
+            color: #fff;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        #name-input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+            text-transform: lowercase;
+        }
+
+        #name-input:focus {
+            border-color: rgba(16, 185, 129, 0.7);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2), inset 0 2px 5px rgba(0,0,0,0.3);
+            background: rgba(6, 14, 10, 0.8);
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: white;
+            border: none;
+            padding: 16px 28px;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(234, 88, 12, 0.35);
+        }
+
+        #start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(234, 88, 12, 0.5);
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+
+        #start-btn:active {
+            transform: translateY(1px);
+        }
+
+        #bg-gradient {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #0e1a14 0%, #040806 100%);
+            z-index: 1;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10;
+        }
+
+        #bg-gradient, #canvas, #audio-toggle {
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            pointer-events: none;
+        }
+
+        body.app-active #bg-gradient, 
+        body.app-active #canvas, 
+        body.app-active #audio-toggle {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #audio-toggle {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 50;
+            background: rgba(12, 22, 16, 0.5);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: rgba(209, 250, 229, 0.7);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 2s ease-in-out;
+            outline: none;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        #audio-toggle:hover {
+            color: #fff;
+            border-color: rgba(16, 185, 129, 0.7);
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        #audio-toggle svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+            pointer-events: none;
+            transition: transform 0.3s ease;
+        }
+        
+        #audio-toggle:active svg {
+            transform: scale(0.85);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="landing-overlay">
+        <div class="glass-panel">
+            <h1>Type your name in the stars</h1>
+            <p>Awaken cosmic physics and ambient sound</p>
+            <input type="text" id="name-input" placeholder="you" autocomplete="off" spellcheck="false" maxlength="25">
+            <button id="start-btn">Start Journey</button>
+        </div>
+    </div>
+
+    <div id="bg-gradient"></div>
+    <canvas id="canvas"></canvas>
+
+    <button id="audio-toggle" aria-label="Toggle Audio">
+        <svg id="icon-muted" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+        <svg id="icon-active" viewBox="0 0 24 24" style="display: none;">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+    </button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true }); 
+        
+        const TWO_PI = Math.PI * 2;
+        const SWIPE_THROTTLE_MS = 80;
+        
+        let width, height, logicalWidth, logicalHeight;
+        let targetName = "You"; 
+        let hasAppStarted = false;
+        
+        let ambientStars = [];       
+        let constellationStars = []; 
+        let ripples = [];            
+        
+        const pointer = { 
+            x: -1000, y: -1000, 
+            lastX: -1000, lastY: -1000,
+            vx: 0, vy: 0, 
+            isDown: false 
+        };
+        
+        let activationCenter1 = { x: 0, y: 0 }; 
+        let activationCenter2 = { x: 0, y: 0 }; 
+        let ACTIVATION_RADIUS = 0; 
+        let ACTIVATION_RADIUS_SQ = 0;
+
+        let smoothNameActivation = 0;
+        let smoothHeartActivation = 0;
+
+        let audioCtx, masterGain, delayNode, feedbackNode, filterNode;
+        let isAudioReady = false;
+        let lastPlayedIndex = -1;
+        let lastTriggerTime = 0;
+        
+        const scale = [
+            130.81, 146.83, 164.81, 185.00, 196.00, 220.00,
+            261.63, 293.66, 329.63, 369.99, 392.00, 440.00,
+            523.25, 587.33, 659.25, 739.99, 783.99, 880.00,
+            1046.50, 1174.66, 1318.51, 1479.98, 1567.98, 1760.00
+        ];
+
+        const btnToggle = document.getElementById('audio-toggle');
+        const iconMuted = document.getElementById('icon-muted');
+        const iconActive = document.getElementById('icon-active');
+        const startBtn = document.getElementById('start-btn');
+        const nameInput = document.getElementById('name-input');
+        const landingOverlay = document.getElementById('landing-overlay');
+
+        const initAudio = () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.4; 
+                
+                filterNode = audioCtx.createBiquadFilter();
+                filterNode.type = 'lowpass';
+                filterNode.frequency.value = 4000; 
+                
+                delayNode = audioCtx.createDelay(2.0);
+                delayNode.delayTime.value = 0.6; 
+                
+                feedbackNode = audioCtx.createGain();
+                feedbackNode.gain.value = 0.5; 
+                
+                delayNode.connect(feedbackNode);
+                feedbackNode.connect(delayNode);
+                masterGain.connect(filterNode);
+                filterNode.connect(audioCtx.destination);
+                delayNode.connect(filterNode);
+                masterGain.connect(delayNode); 
+                
+                isAudioReady = true;
+            } catch (e) {
+                console.warn("Audio Context Failed:", e);
+            }
+        };
+
+        const playNote = (freq) => {
+            if (!isAudioReady || !audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const noteGain = audioCtx.createGain();
+            
+            osc.connect(noteGain); 
+            noteGain.connect(masterGain); 
+            
+            osc.type = 'sine';
+            noteGain.gain.setValueAtTime(0, now);
+            noteGain.gain.linearRampToValueAtTime(0.2, now + 0.05); 
+            noteGain.gain.exponentialRampToValueAtTime(0.001, now + 4); 
+            
+            osc.frequency.setValueAtTime(freq, now);
+            osc.start(now); 
+            osc.stop(now + 4); 
+        };
+
+        const triggerInteraction = (x, y, isSwipe = false) => {
+            if (!isAudioReady || audioCtx.state !== 'running') return;
+            const now = Date.now();
+            if (isSwipe && now - lastTriggerTime < SWIPE_THROTTLE_MS) return;
+            
+            const index = Math.floor((x / logicalWidth) * scale.length);
+            const clampedIndex = Math.max(0, Math.min(scale.length - 1, index));
+            
+            if (isSwipe && clampedIndex === lastPlayedIndex) return;
+            lastPlayedIndex = clampedIndex;
+            
+            const freq = scale[clampedIndex];
+            playNote(freq);
+            ripples.push(new Ripple(x, y, freq));
+            lastTriggerTime = now;
+        };
+
+        const freqToColor = (freq) => {
+            const minFreq = scale[0];
+            const maxFreq = scale[scale.length - 1];
+            const percent = (Math.log(freq) - Math.log(minFreq)) / (Math.log(maxFreq) - Math.log(minFreq));
+            return `hsl(${(percent * 100) + 140}, 85%, 65%)`; 
+        };
+
+        class Ripple {
+            constructor(x, y, freq) {
+                this.x = x; this.y = y;
+                this.radius = 2;
+                this.maxRadius = Math.random() * 100 + 150;
+                this.alpha = 0.4;
+                this.color = freqToColor(freq);
+                this.speed = Math.random() * 2 + 1.5; 
+            }
+            update() {
+                this.radius += this.speed;
+                this.alpha = Math.max(0, 1 - (this.radius / this.maxRadius)) * 0.4;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, TWO_PI);
+                ctx.strokeStyle = this.color.replace(')', `, ${this.alpha})`).replace('hsl', 'hsla');
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+
+        class Star {
+            constructor(isConstellation, targetData = null, depthLayer = 1) {
+                this.depthLayer = depthLayer;
+                this.x = Math.random() * logicalWidth;
+                this.y = Math.random() * logicalHeight;
+                this.isConstellation = isConstellation;
+                this.twinkleSpeed = Math.random() * 0.04 + 0.01;
+                this.angle = Math.random() * TWO_PI;
+                
+                if (isConstellation) {
+                    this.baseSize = Math.random() * 1.4 + 0.6;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    if (targetData) {
+                        this.tName = targetData.name;
+                        this.tHeart = targetData.heart;
+                    }
+                } else {
+                    if (depthLayer === 0) {
+                        this.baseSize = Math.random() * 0.6 + 0.2; 
+                        this.vx = (Math.random() - 0.5) * 0.4;
+                        this.vy = (Math.random() - 0.5) * 0.4;
+                    } else if (depthLayer === 1) {
+                        this.baseSize = Math.random() * 1.2 + 0.6;  
+                        this.vx = (Math.random() - 0.5) * 0.8;
+                        this.vy = (Math.random() - 0.5) * 0.8;
+                    } else {
+                        this.baseSize = Math.random() * 2.0 + 1.2;  
+                        this.vx = (Math.random() - 0.5) * 1.8;
+                        this.vy = (Math.random() - 0.5) * 1.8;
+                    }
+                }
+                
+                this.size = this.baseSize;
+            }
+
+            update(swipeSpeedSq, swipeVx, swipeVy) {
+                if (swipeSpeedSq > 0) {
+                    const speed = Math.sqrt(swipeSpeedSq);
+                    const responseFactor = this.depthLayer === 0 ? 0.2 : (this.depthLayer === 1 ? 0.6 : 1.2);
+                    const force = Math.min(speed * 0.5, 15) * responseFactor;
+                    
+                    this.vx += (swipeVx / speed) * force * (Math.random() * 0.4 + 0.6);
+                    this.vy += (swipeVy / speed) * force * (Math.random() * 0.4 + 0.6);
+                }
+
+                this.angle += this.twinkleSpeed;
+                const minTwinkle = this.depthLayer === 0 ? 0.1 : 0.25;
+                this.alpha = minTwinkle + Math.abs(Math.sin(this.angle)) * 0.7;
+
+                if (!this.isConstellation || (smoothNameActivation < 0.01 && smoothHeartActivation < 0.01)) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    if (this.isConstellation) {
+                        this.vx *= 0.99; this.vy *= 0.99;
+                    } else {
+                        this.vx *= 0.960; this.vy *= 0.960; 
+                    }
+                    
+                    const driftSpeed = this.depthLayer === 0 ? 0.02 : (this.depthLayer === 1 ? 0.05 : 0.1);
+                    this.vx += (Math.random() - 0.5) * driftSpeed;
+                    this.vy += (Math.random() - 0.5) * driftSpeed;
+
+                    if (this.x < -20) this.x = logicalWidth + 20;
+                    if (this.x > logicalWidth + 20) this.x = -20;
+                    if (this.y < -20) this.y = logicalHeight + 20;
+                    if (this.y > logicalHeight + 20) this.y = -20;
+                }
+            }
+        }
+
+        const initActivationAreas = () => {
+            ACTIVATION_RADIUS = Math.min(logicalWidth, logicalHeight) * 0.65;
+            ACTIVATION_RADIUS_SQ = ACTIVATION_RADIUS * ACTIVATION_RADIUS;
+            activationCenter1 = { x: logicalWidth * 0.28, y: logicalHeight * 0.5 };
+            activationCenter2 = { x: logicalWidth * 0.72, y: logicalHeight * 0.5 };
+        };
+
+        const getShapePixels = (type) => {
+            const tempCanvas = document.createElement('canvas');
+            const baseW = 1000;
+            const baseH = 1000;
+            tempCanvas.width = baseW;
+            tempCanvas.height = baseH;
+            const tCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+            
+            tCtx.fillStyle = 'white';
+            tCtx.textAlign = 'center';
+            tCtx.textBaseline = 'middle';
+
+            if (type === 'name') {
+                let fontSize = 280;
+                tCtx.font = `300 ${fontSize}px 'Helvetica Neue', Helvetica, Arial, sans-serif`;
+                
+                while(tCtx.measureText(targetName).width > (baseW * 0.90) && fontSize > 20) {
+                    fontSize -= 5;
+                    tCtx.font = `300 ${fontSize}px 'Helvetica Neue', Helvetica, Arial, sans-serif`;
+                }
+                tCtx.fillText(targetName, baseW/2, baseH/2);
+                
+            } else if (type === 'heart') {
+                tCtx.translate(baseW/2, baseH/2 - 20);
+                const size = 14; 
+                tCtx.beginPath();
+                for (let t = 0; t < TWO_PI; t += 0.04) {
+                    let x = 16 * Math.pow(Math.sin(t), 3);
+                    let y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                    tCtx.lineTo(x * size, y * size);
+                }
+                tCtx.lineWidth = 11;
+                tCtx.stroke();
+            }
+
+            const imgData = tCtx.getImageData(0, 0, baseW, baseH).data;
+            const points = [];
+            const step = type === 'name' ? 8 : 9;
+
+            for (let y = 0; y < baseH; y += step) {
+                for (let x = 0; x < baseW; x += step) {
+                    if (imgData[((y * baseW + x) * 4) + 3] > 100) {
+                        points.push({x, y});
+                    }
+                }
+            }
+            
+            const scaleFactor = Math.min(logicalWidth * 0.82 / baseW, logicalHeight * 0.55 / baseH);
+            const offsetX = (logicalWidth - (baseW * scaleFactor)) / 2;
+            const offsetY = (logicalHeight - (baseH * scaleFactor)) / 2;
+
+            const targets = points.map(p => ({
+                x: p.x * scaleFactor + offsetX,
+                y: p.y * scaleFactor + offsetY
+            }));
+
+            targets.sort((a, b) => a.x - b.x);
+            targets.forEach((t, index) => { t.sequenceDelay = index / targets.length; });
+
+            return targets;
+        };
+
+        const buildSystem = () => {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2); 
+            logicalWidth = window.innerWidth;
+            logicalHeight = window.innerHeight;
+            
+            canvas.width = logicalWidth * dpr;
+            canvas.height = logicalHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            initActivationAreas();
+            
+            const nameTargets = getShapePixels('name');
+            const heartTargets = getShapePixels('heart');
+            
+            ambientStars = [];
+            constellationStars = [];
+
+            const ambientCount = Math.floor((logicalWidth * logicalHeight) / 3000); 
+            for (let i = 0; i < ambientCount; i++) {
+                const rand = Math.random();
+                let layer = 0;
+                if (rand > 0.60 && rand <= 0.90) layer = 1;
+                else if (rand > 0.90) layer = 2;
+                
+                ambientStars.push(new Star(false, null, layer));
+            }
+
+            const maxConstellations = Math.max(nameTargets.length, heartTargets.length);
+            for (let i = 0; i < maxConstellations; i++) {
+                const nT = nameTargets[i % nameTargets.length];
+                const hT = heartTargets[i % heartTargets.length];
+                constellationStars.push(new Star(true, { name: nT, heart: hT }));
+            }
+        };
+
+        const updatePointerPhysics = (x, y) => {
+            const dx = x - pointer.lastX;
+            const dy = y - pointer.lastY;
+            pointer.vx = pointer.vx * 0.3 + dx * 0.7;
+            pointer.vy = pointer.vy * 0.3 + dy * 0.7;
+            pointer.lastX = x;
+            pointer.lastY = y;
+        };
+
+        const animate = () => {
+            ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+            ctx.globalCompositeOperation = 'screen';
+            
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const r = ripples[i];
+                r.update();
+                if (r.alpha > 0.01) {
+                    r.draw();
+                } else {
+                    ripples.splice(i, 1);
+                }
+            }
+
+            let targetNameAct = 0;
+            let targetHeartAct = 0;
+
+            if (pointer.isDown) {
+                const dx1 = pointer.x - activationCenter1.x;
+                const dy1 = pointer.y - activationCenter1.y;
+                const distSq1 = dx1*dx1 + dy1*dy1;
+
+                const dx2 = pointer.x - activationCenter2.x;
+                const dy2 = pointer.y - activationCenter2.y;
+                const distSq2 = dx2*dx2 + dy2*dy2;
+                
+                if (distSq1 < ACTIVATION_RADIUS_SQ) {
+                    const rawN = 1 - (Math.sqrt(distSq1) / ACTIVATION_RADIUS);
+                    targetNameAct = Math.pow(rawN, 1.4); 
+                }
+                
+                if (distSq2 < ACTIVATION_RADIUS_SQ) {
+                    const rawH = 1 - (Math.sqrt(distSq2) / ACTIVATION_RADIUS);
+                    targetHeartAct = Math.pow(rawH, 1.4);
+                }
+            }
+
+            smoothNameActivation += (targetNameAct - smoothNameActivation) * 0.055;
+            smoothHeartActivation += (targetHeartAct - smoothHeartActivation) * 0.055;
+
+            ctx.globalCompositeOperation = 'lighter';
+
+            const swipeSpeedSq = pointer.isDown ? (pointer.vx * pointer.vx + pointer.vy * pointer.vy) : 0;
+
+            ctx.fillStyle = '#475569';
+            ctx.beginPath();
+            for (const star of ambientStars) {
+                if (star.depthLayer === 0) {
+                    star.update(swipeSpeedSq, pointer.vx, pointer.vy);
+                    ctx.moveTo(star.x, star.y);
+                    ctx.arc(star.x, star.y, star.size, 0, TWO_PI);
+                }
+            }
+            ctx.fill();
+
+            ctx.fillStyle = '#94a3b8'; 
+            ctx.beginPath();
+            for (const star of ambientStars) {
+                if (star.depthLayer === 1) {
+                    star.update(swipeSpeedSq, pointer.vx, pointer.vy);
+                    ctx.moveTo(star.x, star.y);
+                    ctx.arc(star.x, star.y, star.size, 0, TWO_PI);
+                }
+            }
+            ctx.fill();
+
+            ctx.fillStyle = '#ecfdf5'; 
+            ctx.beginPath();
+            for (const star of ambientStars) {
+                if (star.depthLayer === 2) {
+                    star.update(swipeSpeedSq, pointer.vx, pointer.vy);
+                    ctx.moveTo(star.x, star.y);
+                    ctx.arc(star.x, star.y, star.size, 0, TWO_PI);
+                }
+            }
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(236, 253, 245, 0.15)'; 
+            ctx.beginPath();
+            for (const star of ambientStars) {
+                if (star.depthLayer === 2 && star.size > 2.5) {
+                    ctx.moveTo(star.x, star.y);
+                    ctx.arc(star.x, star.y, star.size * 3.5, 0, TWO_PI);
+                }
+            }
+            ctx.fill();
+
+            const activeType = smoothNameActivation > smoothHeartActivation ? 'name' : 'heart';
+            const activeVal = Math.max(smoothNameActivation, smoothHeartActivation);
+            
+            for (const star of constellationStars) {
+                star.update(swipeSpeedSq, pointer.vx, pointer.vy);
+
+                star.r = 167; star.g = 243; star.b = 208; 
+                star.extraAlpha = 0;
+
+                if (activeVal > 0.01) {
+                    const target = activeType === 'name' ? star.tName : star.tHeart;
+                    const sequenceLimit = activeVal * 1.4; 
+                    let pullForce = Math.max(0, sequenceLimit - target.sequenceDelay * 0.8);
+                    pullForce = Math.min(1, pullForce);
+
+                    if (activeVal > 0.15) pullForce = Math.max(pullForce, activeVal * 0.12);
+
+                    if (pullForce > 0) {
+                        star.vx *= 0.78; star.vy *= 0.78;
+                        star.vx += (target.x - star.x) * pullForce * 0.095;
+                        star.vy += (target.y - star.y) * pullForce * 0.095;
+
+                        if (activeType === 'name') {
+                            star.r = 110 + (100 * pullForce); star.g = 231; star.b = 183 + (72 * pullForce);
+                        } else {
+                            star.r = 255; star.g = 100 + (100 * (1-pullForce)); star.b = 150 + (50 * pullForce);
+                        }
+                        
+                        star.extraAlpha = pullForce * 0.55;
+                        star.size = star.baseSize + (pullForce * 1.55);
+                    }
+                } else {
+                    star.size = star.baseSize;
+                }
+
+                star.x += star.vx; star.y += star.vy;
+            }
+
+            if (activeVal > 0.1) {
+                ctx.lineWidth = 0.5;
+                const connectionDist = logicalWidth * 0.045;
+                const connectionDistSq = connectionDist * connectionDist; 
+                
+                for (let i = 0; i < constellationStars.length; i++) {
+                    const s1 = constellationStars[i];
+                    const target1 = activeType === 'name' ? s1.tName : s1.tHeart;
+                    const targetDelay = target1.sequenceDelay * 0.8;
+                    
+                    if ((activeVal * 1.4) > targetDelay || activeVal > 0.4) {
+                        const limit = Math.min(i + 8, constellationStars.length);
+                        for (let j = i + 1; j < limit; j++) {
+                            const s2 = constellationStars[j];
+                            const dx = s1.x - s2.x;
+                            const dy = s1.y - s2.y;
+                            const distSq = dx*dx + dy*dy;
+
+                            if (distSq < connectionDistSq) {
+                                const dist = Math.sqrt(distSq);
+                                const lineAlpha = (1 - (dist / connectionDist)) * activeVal * 0.45;
+                                
+                                if (lineAlpha > 0) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(s1.x, s1.y);
+                                    ctx.lineTo(s2.x, s2.y);
+                                    
+                                    ctx.strokeStyle = activeType === 'name' 
+                                        ? `rgba(52, 211, 153, ${lineAlpha})` 
+                                        : `rgba(244, 114, 182, ${lineAlpha})`;
+                                    ctx.stroke();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const star of constellationStars) {
+                const alpha = Math.min(1, star.alpha + star.extraAlpha);
+                
+                ctx.fillStyle = `rgba(${star.r | 0}, ${star.g | 0}, ${star.b | 0}, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, TWO_PI);
+                ctx.fill();
+
+                if (star.extraAlpha > 0.1) {
+                    ctx.fillStyle = `rgba(${star.r | 0}, ${star.g | 0}, ${star.b | 0}, ${star.extraAlpha * 0.28})`;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.size * 3.4, 0, TWO_PI);
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(animate);
+        };
+
+        const scatterAll = (swipeVx, swipeVy) => {
+            const speedSq = swipeVx*swipeVx + swipeVy*swipeVy;
+            ambientStars.forEach(s => s.update(speedSq, swipeVx, swipeVy));
+            constellationStars.forEach(s => s.update(speedSq, swipeVx, swipeVy));
+        };
+
+        const handlePointerDown = (x, y) => {
+            pointer.isDown = true;
+            pointer.x = x; pointer.y = y;
+            pointer.lastX = x; pointer.lastY = y;
+            pointer.vx = 0; pointer.vy = 0; 
+            triggerInteraction(x, y, false);
+        };
+
+        const handlePointerMove = (x, y) => {
+            pointer.x = x; pointer.y = y;
+            if (pointer.isDown) {
+                updatePointerPhysics(x, y); 
+                triggerInteraction(x, y, true);
+            }
+        };
+
+        const handlePointerUp = () => {
+            if (pointer.isDown) scatterAll(pointer.vx, pointer.vy); 
+            pointer.isDown = false;
+        };
+
+        startBtn.addEventListener('click', () => {
+            const val = nameInput.value.trim();
+            targetName = val !== "" ? val : "You";
+            
+            if (val !== "" && window.saveVisitorName) {
+                window.saveVisitorName(targetName);
+            }
+
+            landingOverlay.classList.add('fade-out');
+            document.body.classList.add('app-active');
+
+            if (!audioCtx) {
+                initAudio();
+                iconMuted.style.display = 'none';
+                iconActive.style.display = 'block';
+                btnToggle.style.color = '#fff';
+                btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.7)';
+            }
+
+            buildSystem();
+            
+            if (!hasAppStarted) {
+                hasAppStarted = true;
+                animate();
+            }
+        });
+
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startBtn.click();
+        });
+
+        btnToggle.addEventListener('click', () => {
+            if (!audioCtx) {
+                initAudio();
+                iconMuted.style.display = 'none';
+                iconActive.style.display = 'block';
+                btnToggle.style.color = '#fff';
+                btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.7)';
+            } else {
+                if (audioCtx.state === 'running') {
+                    audioCtx.suspend();
+                    iconMuted.style.display = 'block';
+                    iconActive.style.display = 'none';
+                    btnToggle.style.color = 'rgba(209, 250, 229, 0.5)';
+                    btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+                } else if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                    iconMuted.style.display = 'none';
+                    iconActive.style.display = 'block';
+                    btnToggle.style.color = '#fff';
+                    btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.7)';
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (!hasAppStarted) return;
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(buildSystem, 300);
+        });
+
+        canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+        canvas.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+        canvas.addEventListener('mouseup', handlePointerUp);
+        canvas.addEventListener('mouseleave', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => {
+            handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault(); 
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (!pointer.isDown) return;
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', handlePointerUp);
+        canvas.addEventListener('touchcancel', handlePointerUp);
+
+    </script>
+</body>
+</html>
+
+
